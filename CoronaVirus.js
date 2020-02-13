@@ -3,8 +3,8 @@ const states = ["", "👨🏻‍⚕️", "💀"];
 const gridSize = 10;
 let grid = [];//lookup table of [x][y] = states
 
-const treesPerFrame = 30;//amount of new tree created in each frame
-const fireProbability = 0.3;//chance to appear a new fire each frame
+const humansPerFrame = 30;//amount of new tree created in each frame
+const diseaseProbability = 0.3;//chance to appear a new fire each frame
 
 function setup() {
   frameRate(30);
@@ -68,15 +68,15 @@ function draw() {
     })
   })
   
-  //random tree
-  for(let i = 0; i < treesPerFrame; i++){
+  //random human generation
+  for(let i = 0; i < humansPerFrame; i++){
     indexX = floor(random(width/gridSize)) * gridSize;
     indexY = floor(random(height/gridSize)) * gridSize;
     grid[indexX][indexY] = 1;
   }
   
-  //random fire
-  if(random() > fireProbability){
+  //random disease
+  if(random() > diseaseProbability){
     indexX = floor(random(width/gridSize)) * gridSize;
     indexY = floor(random(height/gridSize)) * gridSize;
     grid[indexX][indexY] = 2;
