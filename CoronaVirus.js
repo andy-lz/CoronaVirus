@@ -1,20 +1,25 @@
 // Inspired by Nicky Case and Conway's Game of Life
-const states = ["", "🙍","🤢","💀","👨‍⚕️"];  // TODO add another human, as well as tree and fire
-const humanStates = ["👨‍💼","🙍‍♂️"];
+const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️"];  // TODO add another human, as well as tree and fire
+const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 15;
 let grid = [];//lookup table of [x][y] = states
-const diseaseIndex = 2;
-const deathIndex = 3;
-const normalIndex = [1];
-const humanIndex = [1,4];
-const doctorIndex = 4;
+let grid = []; //lookup table of [x][y] = states
+const diseaseIndex = 3;
+const deathIndex = 4;
+const normalIndex = [1,2];
+const humanIndex = [1,2,5];
+const doctorIndex = 5;
 
-const humansPerFrame = 30;//amount of new tree created in each frame
+const humansPerFrame = 20; // number of humans generated each frame
 const doctorsPerFrame = 2;
-const diseaseProbability = 0.3;//chance to appear a new fire each frame
+const diseaseProbability = 0.9; //chance that a new disease appears in each frame
+
+const audioThreshold = 0.00001;
+const nyquist = 22050;
+var amp, audio, analyzer;
 
 function setup() {
-  frameRate(15);
+  frameRate(20);
   createCanvas(windowWidth, windowHeight);
   textSize(gridSize);
   stroke(200);
@@ -27,10 +32,21 @@ function setup() {
       rect(x, y, gridSize, gridSize);
     }
   }
+  audio = new p5.AudioIn();
+  audio.start();
+  
+  amp = new p5.Amplitude();
+  amp.setInput(audio);
+  amp.toggleNormalize(1);
+  
+  analyzer = new p5.FFT();
+  analyzer.setInput(audio);
 }
 
 function draw() {
   background(0);
+  text(amp.getLevel(), 50, 50);
+  
   //clone state
   let previousGrid = grid.map(columns => columns.slice());
   
@@ -48,10 +64,12 @@ function draw() {
         grid[indexX][indexY] = 0;
       }
       if(lastState == diseaseIndex){
-        if (fatality < 0.2) {
+        if (fatality < 0.5) { // death probability 
           grid[indexX][indexY] = deathIndex;
-        } else {
-        propagate(diseaseIndex, humanIndex, indexX, indexY);
+        } else if (fatality > 0.9) { // survival probability
+          grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
+        } else { 
+          propagate(diseaseIndex, humanIndex, indexX, indexY);
         }
       }
       
@@ -70,22 +88,25 @@ function draw() {
   for(let i = 0; i < humansPerFrame; i++){
     indexX = floor(random(width/gridSize)) * gridSize;
     indexY = floor(random(height/gridSize)) * gridSize;
-    grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
+    if (grid[indexX][indexY] == 0) {
+      grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
+    }
   }
   
-  for (let i = 0; i < doctorsPerFrame; i++) {
-    indexX = floor(random(width/gridSize)) * gridSize;
-    indexY = floor(random(height/gridSize)) * gridSize;
-    grid[indexX][indexY] = doctorIndex;
-  }
+  // random doctor generation
+  spawnStates(doctorIndex, doctorsPerFrame); 
   
-  //random disease
-  if(random() > diseaseProbability){
-    indexX = floor(random(width/gridSize)) * gridSize;
-    indexY = floor(random(height/gridSize)) * gridSize;
-    grid[indexX][indexY] = diseaseIndex;
+  // audio disease
+  let level = amp.getLevel();
+  if (true) {
+    spectrum = analyzer.analyze();
+    center = analyzer.getCentroid();
+    if(random() < diseaseProbability) {
+      indexX = floor((center / nyquist * 2) * (width/gridSize)) * gridSize;
+      indexY = floor((1 + level)*height/gridSize*random(-1, 1)) * gridSize;
+      grid[indexX][indexY] = diseaseIndex;
+    }
   }
-  
   
 }
 
@@ -164,4 +185,14 @@ function propagate(state, targets, indexX, indexY) {
 // TODO add immunization to surrounding area
 function persistWithProbability(indexX, indexY, prob) {
   
+}
+
+function spawnStates(state, numStates) {
+  for (let i = 0; i < numStates; i++) {
+    indexX = floor(random(width/gridSize)) * gridSize;
+    indexY = floor(random(height/gridSize)) * gridSize;
+    if (grid[indexX][indexY] == 0) { // make sure to spawn in uninhabited grid space
+      grid[indexX][indexY] = state;
+    }
+  }
 }
