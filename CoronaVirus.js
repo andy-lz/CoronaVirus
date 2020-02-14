@@ -2,7 +2,6 @@
 const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️"];  // TODO add another human, as well as tree and fire
 const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 15;
-let grid = [];//lookup table of [x][y] = states
 let grid = []; //lookup table of [x][y] = states
 const diseaseIndex = 3;
 const deathIndex = 4;
