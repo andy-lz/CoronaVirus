@@ -1,38 +1,48 @@
-// Inspired by Nicky Case and Conway's Game of Life
-const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️"];  // TODO add another human, as well as tree and fire
+// Inspired by Conway's Game of Life
+const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦"];  // TODO add fire?
 const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 15;
-let grid = []; //lookup table of [x][y] = states
+let grid = []; // lookup table of [x][y] = states
 const diseaseIndex = 3;
 const deathIndex = 4;
 const normalIndex = [1,2];
 const humanIndex = [1,2,5];
 const doctorIndex = 5;
+const barrierIndex = 6;
+const waterIndex = 7;
+const dx = 0.1;
 
-const humansPerFrame = 20; // number of humans generated each frame
-const doctorsPerFrame = 2;
-const diseaseProbability = 0.9; //chance that a new disease appears in each frame
+const humansPerFrame = 2; // number of humans generated each frame
+const doctorsPerFrame = 1;
+const diseaseProbability = 0.9; // chance that a new disease appears in each frame
 
-const audioThreshold = 0.00001;
+const audioThreshold = 0.05;
 const nyquist = 22050;
 var amp, audio, analyzer;
 
 function setup() {
-  frameRate(20);
-  createCanvas(windowWidth, windowHeight);
+  frameRate(30);
+  createCanvas(windowWidth, windowHeight, P2D);
   textSize(gridSize);
-  stroke(200);
-  
+  let terrainGrid = [];
   for(let x = 0; x < width; x += gridSize){
     grid[x] = [];
+    terrainGrid[x] = [];
     for(let y = 0; y < height; y += gridSize){
       grid[x][y] = random() > 0.8 ? normalIndex[int(random(normalIndex.length))] : 0;
+      terrainGrid[x][y] = random() < 0.56 ? 1 : 0;
       //draw grid
-      rect(x, y, gridSize, gridSize);
+      // rect(x, y, gridSize, gridSize);
     }
   }
+  proceduralGenerateLand(terrainGrid);
   audio = new p5.AudioIn();
-  audio.start();
+  let myDiv = createDiv('click to start audio'); // need to click to begin receiving mic input
+  myDiv.position(0, 0);
+  userStartAudio().then(function() {
+     audio.start();
+     myDiv.remove();
+   });
   
   amp = new p5.Amplitude();
   amp.setInput(audio);
@@ -44,26 +54,46 @@ function setup() {
 
 function draw() {
   background(0);
-  text(amp.getLevel(), 50, 50);
   
-  //clone state
+  // clone state
   let previousGrid = grid.map(columns => columns.slice());
-  
-  grid.forEach((column, indexX) => {
+  translate(0,0);
+  let humanCount = 0;
+  previousGrid.forEach((column, indexX) => {
     column.forEach((state, indexY) => {
-      //draw emoji
-      if(state > 0) { 
+      // draw states (emojis)
+      if(state > 0) {
+        if (state == doctorIndex){
+          stroke(200);
+        } else {
+          stroke(0);
+        }
         text(states[state], indexX, indexY + gridSize);
       }
-      fatality = random();
-      stateCounts = countSurroundingStates(previousGrid, indexX,indexY);
+      
+      fatality = random();  // death probability 
+      let stateCounts = countSurroundingStates(previousGrid, indexX,indexY);
       lastState = previousGrid[indexX][indexY];
+      
+      if (lastState in humanIndex) { humanCount++; }
+      
+      if (lastState == 0) {
+        let num_normal = 0;
+        let num_sick = stateCounts[diseaseIndex];
+        let num_docs = stateCounts[doctorIndex];
+        normalIndex.forEach(elem => num_normal += stateCounts[elem]);
+        if (num_normal >= 5) {  // generate new human 
+          grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
+        } else if (num_sick > 0 && num_docs > 1) {
+          grid[indexX][indexY] = barrierIndex;
+        }
+      }
       if (lastState == deathIndex) {
         // remove death
         grid[indexX][indexY] = 0;
       }
       if(lastState == diseaseIndex){
-        if (fatality < 0.5) { // death probability 
+        if (fatality < 0.3) { 
           grid[indexX][indexY] = deathIndex;
         } else if (fatality > 0.9) { // survival probability
           grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
@@ -71,17 +101,15 @@ function draw() {
           propagate(diseaseIndex, humanIndex, indexX, indexY);
         }
       }
-      
-      // immunization
-      if (lastState == doctorIndex) {
-        if (fatality > 0.95) {  // self-immunization
+      if (lastState == doctorIndex) { // doctor's immunization
+        if (fatality > 0.5) {  // self-immunization
           grid[indexX][indexY] = doctorIndex;
-        } else {
-          persistWithProbability(indexX, indexY, 0.4); // immunize surrounding
         }
+        persistWithProbability(previousGrid, humanIndex, indexX, indexY, 0.4); // immunize surrounding
       }
     });
   });
+  if (humanCount == 0) { clearAll(); } // clear ground
   
   //random human generation
   for(let i = 0; i < humansPerFrame; i++){
@@ -97,20 +125,27 @@ function draw() {
   
   // audio disease
   let level = amp.getLevel();
-  if (true) {
+  if (level > audioThreshold) {
     spectrum = analyzer.analyze();
     center = analyzer.getCentroid();
-    if(random() < diseaseProbability) {
-      indexX = floor((center / nyquist * 2) * (width/gridSize)) * gridSize;
-      indexY = floor((1 + level)*height/gridSize*random(-1, 1)) * gridSize;
-      grid[indexX][indexY] = diseaseIndex;
+    for (let i = 0; i < int(level/audioThreshold); i++) {
+      if(random() < diseaseProbability) {
+        gridX = max(min((center / nyquist * 5+ random(-dx,dx)), 0.99),0.01);
+        gridY = max(min((1 + level*random(-1,1))/2, 0.99),0.01);
+        indexX = floor(gridX*width/gridSize) * gridSize;
+        indexY = floor(gridY*height/gridSize) * gridSize;
+        // console.log(indexX,indexY);
+        if (grid[indexX][indexY] in humanIndex) {
+          grid[indexX][indexY] = diseaseIndex;
+        }
+      }
     }
   }
   
 }
 
 function countSurroundingStates(gridStates, indexX, indexY) {
-  stateCount = [0]*states.length;
+  let stateCount = new Array(gridStates.length).fill(0);
   if(indexX > 0) {
     //left
     stateCount[gridStates[indexX-gridSize][indexY]] += 1;
@@ -182,8 +217,56 @@ function propagate(state, targets, indexX, indexY) {
 }
 
 // TODO add immunization to surrounding area
-function persistWithProbability(indexX, indexY, prob) {
-  
+function persistWithProbability(oldGrid, targets, indexX, indexY, prob) {
+    if(indexX > 0 && targets.includes(oldGrid[indexX-gridSize][indexY])) {
+      if (random() < prob) {
+        grid[indexX-gridSize][indexY] = oldGrid[indexX-gridSize][indexY];
+      }
+    //left
+  }
+  if(indexX < width - gridSize && targets.includes(oldGrid[indexX+gridSize][indexY])) {
+    //right
+    if (random() < prob) {
+        grid[indexX+gridSize][indexY] = oldGrid[indexX+gridSize][indexY];
+    }
+  }
+  if(indexY > 0 && targets.includes(oldGrid[indexX][indexY-gridSize])) {
+    //top
+    if (random() < prob) {
+      grid[indexX][indexY-gridSize] = oldGrid[indexX][indexY-gridSize];
+    }
+  }
+  if(indexY < height - gridSize && targets.includes(oldGrid[indexX][indexY+gridSize])) {
+    //bottom
+    if (random() < prob) {
+      grid[indexX][indexY+gridSize] = oldGrid[indexX][indexY+gridSize];
+    }
+  }
+  if(indexX > 0 && indexY > 0 && targets.includes(oldGrid[indexX-gridSize][indexY-gridSize])) {
+    //top left
+    if (random() < prob) {
+      grid[indexX-gridSize][indexY-gridSize] = oldGrid[indexX-gridSize][indexY-gridSize];
+    }
+  }
+  if(indexX < width-gridSize && indexY > 0 && targets.includes(oldGrid[indexX+gridSize][indexY-gridSize])) {
+    //top right
+    if (random() < prob) {
+      grid[indexX+gridSize][indexY-gridSize] =oldGrid[indexX+gridSize][indexY-gridSize];
+    }
+  }
+  if(indexX > 0 && indexY < height - gridSize && targets.includes(oldGrid[indexX-gridSize][indexY+gridSize])) {
+    //bottom left
+    if (random() < prob) {
+      grid[indexX-gridSize][indexY+gridSize] = oldGrid[indexX-gridSize][indexY+gridSize];
+    }
+  }
+  if(indexX < width-gridSize && indexY < height - gridSize && targets.includes(oldGrid[indexX+gridSize][indexY+gridSize])) {
+    //bottom right
+    if (random() < prob) {
+      grid[indexX+gridSize][indexY+gridSize] = oldGrid[indexX+gridSize][indexY+gridSize];
+    }
+  }
+
 }
 
 function spawnStates(state, numStates) {
@@ -194,4 +277,59 @@ function spawnStates(state, numStates) {
       grid[indexX][indexY] = state;
     }
   }
+}
+
+function clearAll() {
+  grid.forEach((column, indexX) => {
+    column.forEach((state, indexY) => {
+      grid[indexX][indexY] = 0;
+    });
+  });
+}
+
+function proceduralGenerateLand(terrainGrid) {
+  let landState = 1;
+  let num_changes = 1;
+  
+  // O(mn^2) procedural land generation
+  while (num_changes > 0) {
+    num_changes = 0;
+    terrainGrid.forEach((column, indexX) => {
+      column.forEach((state, indexY) => {
+        surroundStates = countSurroundingStates(terrainGrid, indexX, indexY);
+        if (state == 0) {
+          if (surroundStates[2]>4){
+            terrainGrid[indexX][indexY] = 2;
+            num_changes++;
+          }
+        }
+        if (state == 1) {
+          if (surroundStates[0] >= 1) {
+            terrainGrid[indexX][indexY] = 2;
+            num_changes++;
+          }
+        }
+        if (state == 2) {
+          if (surroundStates[0] > 4) {
+            terrainGrid[indexX][indexY] = 0;
+            num_changes++;
+          } else if (surroundStates[0] == 0){
+            terrainGrid[indexX][indexY] = 1;
+            num_changes++;
+          }
+        }
+      });
+    });
+  }
+  terrainGrid.forEach((column, indexX) => {
+      column.forEach((state, indexY) => {
+        if (state == 0) {
+          grid[indexX][indexY] = waterIndex;
+        }
+        if (state == 2) {
+          grid[indexX][indexY] = barrierIndex;
+        }
+      });
+    });
+ 
 }
