@@ -16,9 +16,11 @@ const humansPerFrame = 2; // number of humans generated each frame
 const doctorsPerFrame = 1;
 const diseaseProbability = 0.9; // chance that a new disease appears in each frame
 
-const audioThreshold = 0.01;
+var audioThreshold;
+const thresholdLength = 60;
 const nyquist = 22050;
 var amp, audio, analyzer;
+var amp_levels = [];
 
 function setup() {
   frameRate(30);
@@ -124,7 +126,13 @@ function draw() {
   spawnStates(doctorIndex, doctorsPerFrame); 
   
   // audio disease
+  audioThreshold = averageArray(amp_levels);
   let level = amp.getLevel();
+  amp_levels[amp_levels.length] = level;
+  if (amp_levels.length > thresholdLength) {
+    amp_levels.shift();
+  }
+  
   if (level > audioThreshold) {
     spectrum = analyzer.analyze();
     center = analyzer.getCentroid();
@@ -338,4 +346,10 @@ function proceduralGenerateLand(terrainGrid) {
 
 function logTransformCentroidRatio(centroid, nyquist) {
   return log(centroid)/(2*log(nyquist));
+}
+
+function averageArray(arr) {
+  let y = 0;
+  cumsum = arr.map(d=>y+=d);
+  return float(y / arr.length);
 }
