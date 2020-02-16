@@ -10,13 +10,13 @@ const humanIndex = [1,2,5];
 const doctorIndex = 5;
 const barrierIndex = 6;
 const waterIndex = 7;
-const dx = 0.1;
+const dx = 0.2;
 
 const humansPerFrame = 2; // number of humans generated each frame
 const doctorsPerFrame = 1;
 const diseaseProbability = 0.9; // chance that a new disease appears in each frame
 
-const audioThreshold = 0.05;
+const audioThreshold = 0.01;
 const nyquist = 22050;
 var amp, audio, analyzer;
 
@@ -30,7 +30,7 @@ function setup() {
     terrainGrid[x] = [];
     for(let y = 0; y < height; y += gridSize){
       grid[x][y] = random() > 0.8 ? normalIndex[int(random(normalIndex.length))] : 0;
-      terrainGrid[x][y] = random() < 0.56 ? 1 : 0;
+      terrainGrid[x][y] = random() < 0.6 ? 1 : 0;
       //draw grid
       // rect(x, y, gridSize, gridSize);
     }
@@ -39,10 +39,6 @@ function setup() {
   audio = new p5.AudioIn();
   let myDiv = createDiv('click to start audio'); // need to click to begin receiving mic input
   myDiv.position(0, 0);
-  userStartAudio().then(function() {
-     audio.start();
-     myDiv.remove();
-   });
   
   amp = new p5.Amplitude();
   amp.setInput(audio);
@@ -50,6 +46,10 @@ function setup() {
   
   analyzer = new p5.FFT();
   analyzer.setInput(audio);
+  userStartAudio().then(function() {
+     audio.start();
+     myDiv.remove();
+   });
 }
 
 function draw() {
@@ -130,7 +130,7 @@ function draw() {
     center = analyzer.getCentroid();
     for (let i = 0; i < int(level/audioThreshold); i++) {
       if(random() < diseaseProbability) {
-        gridX = max(min((center / nyquist * 5+ random(-dx,dx)), 0.99),0.01);
+        gridX = max(min((logTransformCentroidRatio(center, nyquist)+ random(-dx,dx)), 0.99),0.01);
         gridY = max(min((1 + level*random(-1,1))/2, 0.99),0.01);
         indexX = floor(gridX*width/gridSize) * gridSize;
         indexY = floor(gridY*height/gridSize) * gridSize;
@@ -334,4 +334,8 @@ function proceduralGenerateLand(terrainGrid) {
       });
     });
  
+}
+
+function logTransformCentroidRatio(centroid, nyquist) {
+  return log(centroid)/(2*log(nyquist));
 }
