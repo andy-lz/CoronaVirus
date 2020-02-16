@@ -1,4 +1,12 @@
 // Inspired by Conway's Game of Life
+
+/* TODO
+  * Add second mic functionality
+     * taxes? peach bomb?
+  * Add death/skull mechanic (lethality?)
+  * Get Coronavirus stock footage
+*/
+
 const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦"];  // TODO add fire?
 const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 15;
@@ -16,11 +24,7 @@ const humansPerFrame = 2; // number of humans generated each frame
 const doctorsPerFrame = 1;
 const diseaseProbability = 0.9; // chance that a new disease appears in each frame
 
-var audioThreshold;
-const thresholdLength = 60;
-const nyquist = 22050;
-var amp, audio, analyzer;
-var amp_levels = [];
+var aa1, aa2;
 
 function setup() {
   frameRate(30);
@@ -38,18 +42,15 @@ function setup() {
     }
   }
   proceduralGenerateLand(terrainGrid);
-  audio = new p5.AudioIn();
   let myDiv = createDiv('click to start audio'); // need to click to begin receiving mic input
   myDiv.position(0, 0);
   
-  amp = new p5.Amplitude();
-  amp.setInput(audio);
-  amp.toggleNormalize(1);
+  aa1 = new AudioAnalyzer(0);
+  aa2 = new AudioAnalyzer(1);
   
-  analyzer = new p5.FFT();
-  analyzer.setInput(audio);
   userStartAudio().then(function() {
-     audio.start();
+     aa1.start_audio();
+     aa2.start_audio();
      myDiv.remove();
    });
 }
@@ -126,20 +127,15 @@ function draw() {
   spawnStates(doctorIndex, doctorsPerFrame); 
   
   // audio disease
-  audioThreshold = averageArray(amp_levels);
-  let level = amp.getLevel();
-  amp_levels[amp_levels.length] = level;
-  if (amp_levels.length > thresholdLength) {
-    amp_levels.shift();
-  }
-  
-  if (level > audioThreshold) {
-    spectrum = analyzer.analyze();
-    center = analyzer.getCentroid();
-    for (let i = 0; i < int(level/audioThreshold); i++) {
+  let audioThreshold1 = aa1.calculateThreshold();
+  let level1 = aa1.getLevel();
+
+  if (level1 > audioThreshold1) {
+    logCentroidRatio = aa1.getLogCentroid();
+    for (let i = 0; i < int(level1/audioThreshold1); i++) {
       if(random() < diseaseProbability) {
-        gridX = max(min((logTransformCentroidRatio(center, nyquist)+ random(-dx,dx)), 0.99),0.01);
-        gridY = max(min((1 + level*random(-1,1))/2, 0.99),0.01);
+        gridX = max(min((logCentroidRatio + random(-dx,dx)), 0.99),0.01);
+        gridY = max(min((1 + level1*random(-1,1))/2, 0.99),0.01);
         indexX = floor(gridX*width/gridSize) * gridSize;
         indexY = floor(gridY*height/gridSize) * gridSize;
         // console.log(indexX,indexY);
@@ -151,6 +147,9 @@ function draw() {
       }
     }
   }
+  
+  let audioThreshold2 = aa2.calculateThreshold();
+  let level2 = aa2.getLevel();
   
 }
 
@@ -342,14 +341,4 @@ function proceduralGenerateLand(terrainGrid) {
       });
     });
  
-}
-
-function logTransformCentroidRatio(centroid, nyquist) {
-  return log(centroid)/(2*log(nyquist));
-}
-
-function averageArray(arr) {
-  let y = 0;
-  cumsum = arr.map(d=>y+=d);
-  return float(y / arr.length);
 }
