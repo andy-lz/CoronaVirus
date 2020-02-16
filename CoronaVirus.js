@@ -9,7 +9,7 @@
 
 const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦"];  // TODO add fire?
 const humanStates = ["👨‍💼","🙍‍♂"];
-const gridSize = 15;
+const gridSize = 12;
 let grid = []; // lookup table of [x][y] = states
 const diseaseIndex = 3;
 const deathIndex = 4;
@@ -24,24 +24,42 @@ const humansPerFrame = 2; // number of humans generated each frame
 const doctorsPerFrame = 1;
 const diseaseProbability = 0.9; // chance that a new disease appears in each frame
 
+
 var aa1, aa2;
+
+let img;
+const imgZoom = 1.2;
+const IMG_FLAG = 0;
+
+function preload() {
+  img = loadImage('assets/background.jpg');
+}
 
 function setup() {
   frameRate(30);
+  background(255);
   createCanvas(windowWidth, windowHeight, P2D);
   textSize(gridSize);
   let terrainGrid = [];
+  img.resize(1.5*width, 1.5*height);
+  img.loadPixels();
+  let brightAvg = avgBrightness(img.pixels);
   for(let x = 0; x < width; x += gridSize){
     grid[x] = [];
     terrainGrid[x] = [];
     for(let y = 0; y < height; y += gridSize){
       grid[x][y] = random() > 0.8 ? normalIndex[int(random(normalIndex.length))] : 0;
-      terrainGrid[x][y] = random() < 0.6 ? 1 : 0;
+      if (IMG_FLAG > 0) {
+        terrainGrid[x][y] = binaryBrightness(img.get(x,y), brightAvg);
+      } else {
+        terrainGrid[x][y] = random() < 0.6 ? 1 : 0;
+      }
       //draw grid
       // rect(x, y, gridSize, gridSize);
     }
   }
   proceduralGenerateLand(terrainGrid);
+  setLand(terrainGrid);
   let myDiv = createDiv('click to start audio'); // need to click to begin receiving mic input
   myDiv.position(0, 0);
   
@@ -127,7 +145,7 @@ function draw() {
   spawnStates(doctorIndex, doctorsPerFrame); 
   
   // audio disease
-  let audioThreshold1 = aa1.calculateThreshold();
+  let audioThreshold1 = aa1.calculateThreshold()/2;
   let level1 = aa1.getLevel();
 
   if (level1 > audioThreshold1) {
@@ -330,15 +348,32 @@ function proceduralGenerateLand(terrainGrid) {
       });
     });
   }
+  setLand(terrainGrid);
+}
+
+function setLand(terrainGrid) {
   terrainGrid.forEach((column, indexX) => {
-      column.forEach((state, indexY) => {
-        if (state == 0) {
-          grid[indexX][indexY] = waterIndex;
-        }
-        if (state == 2) {
-          grid[indexX][indexY] = barrierIndex;
-        }
-      });
+    column.forEach((state, indexY) => {
+      if (state == 0) {
+        grid[indexX][indexY] = waterIndex;
+      }
+      if (state == 2) {
+        grid[indexX][indexY] = barrierIndex;
+      }
     });
- 
+  });
+}
+
+
+function binaryBrightness(c1, threshold) {
+  return (brightness(c1)< threshold) ? 1 : 0;
+}
+
+function avgBrightness(pixelArr) {
+  let brightnessAvg = 0;
+  pixelArr.forEach(col=> {
+    brightnessAvg += brightness(col);
+  });
+  brightnessAvg /= pixelArr.length;
+  return brightnessAvg;
 }
