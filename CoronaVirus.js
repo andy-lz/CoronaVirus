@@ -135,7 +135,9 @@ function draw() {
         indexX = floor(gridX*width/gridSize) * gridSize;
         indexY = floor(gridY*height/gridSize) * gridSize;
         // console.log(indexX,indexY);
-        if (grid[indexX][indexY] in humanIndex) {
+        if (grid[indexX][indexY] in normalIndex) {
+          grid[indexX][indexY] = diseaseIndex;
+        } else if (grid[indexX][indexY] == doctorIndex && random() < 0.4) {
           grid[indexX][indexY] = diseaseIndex;
         }
       }
