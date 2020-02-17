@@ -6,7 +6,8 @@ const thresholdLength = 40;
 
 class AudioAnalyzer {
   constructor(index) {
-    this.audio = new p5.AudioIn(index);
+    this.audio = new p5.AudioIn();
+    this.audio.setSource(index);
         
     this.amp = new p5.Amplitude();
     this.amp.setInput(this.audio);
