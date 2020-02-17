@@ -7,7 +7,7 @@
   * Get Coronavirus stock footage
 */
 
-const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦","🍑"];  // TODO add fire?
+const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦","🍑","💸"];  // TODO add fire?
 const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 12;
 var grid; // lookup table of [x][y] = states
@@ -19,6 +19,7 @@ const doctorIndex = 5;
 const barrierIndex = 6;
 const waterIndex = 7;
 const peachIndex = 8;
+const moneyIndex = 9;
 const dx = 0.1;
 
 const humansPerFrame = 2; // number of humans generated each frame
@@ -30,12 +31,12 @@ var aa1, aa2;
 // const audioThresh = 0.01;
 
 let img;
-const imgZoom = 1.2;
+const imgZoom = 1;
 const IMG_FLAG = 0;
 
 function preload() {
   if (IMG_FLAG > 0) {
-    img = loadImage('assets/background.jpg');
+    img = loadImage('assets/background1.jpg');
   }
 }
 
@@ -45,11 +46,12 @@ function setup() {
   createCanvas(windowWidth, windowHeight, P2D);
   textSize(gridSize);
   let terrainGrid = [];
+  let brightAvg;
   grid = [];
   if (IMG_FLAG > 0) {
-    img.resize(1.5*width, 1.5*height);
+    img.resize(imgZoom*width, imgZoom*height);
     img.loadPixels();
-    let brightAvg = avgBrightness(img.pixels);
+    brightAvg = avgBrightness(img.pixels);
   }
   for(let x = 0; x < width; x += gridSize){
     grid[x] = [];
@@ -67,6 +69,7 @@ function setup() {
   }
   proceduralGenerateLand(terrainGrid);
   setLand(terrainGrid);
+
   let myDiv = createDiv('click to start audio'); // need to click to begin receiving mic input
   myDiv.position(0, 0);
   
@@ -129,6 +132,12 @@ function draw() {
           propagate(diseaseIndex, humanIndex, indexX, indexY);
         }
       }
+      if (lastState == peachIndex || lastState == moneyIndex) {
+        if (stateCounts[diseaseIndex] > 0) {
+          propagate(diseaseIndex, humanIndex, indexX, indexY);
+          grid[indexX][indexY] = 0;
+        }
+      }
       if (lastState == doctorIndex) { // doctor's immunization
         if (fatality > 0.5) {  // self-immunization
           grid[indexX][indexY] = doctorIndex;
@@ -161,27 +170,6 @@ function draw() {
     }
   }
   
-  // audio disease
-  let audioThreshold2 = aa2.calculateThreshold()/2;
-  let level2 = aa2.getLevel();
-
-  if (level2 > audioThreshold2) {
-    logCentroidRatio = aa2.getLogisticCentroidHuman();
-    gridX = max(min((logCentroidRatio + random(-dx,dx)), 0.99),0.01);
-    gridY = max(min((1 + level1*random(-1,1))/2, 0.99),0.01);
-    indexX = floor(gridX*width/gridSize) * gridSize;
-    indexY = floor(gridY*height/gridSize) * gridSize;
-    // console.log(indexX,indexY);
-    let iter = max(int(level1/audioThreshold1), 20);
-    for (let i = 0; i < iter; i++) {
-        dIndexX = int(random(-3, 3));
-        dIndexY = int(random(-3, 3));
-        if (grid[indexX + dIndexX][indexY + dIndexY] == 0) {
-          grid[indexX + dIndexX][indexY + dIndexY] = normalIndex[int(random(normalIndex.length))];
-        }
-      }
-    }
-  }
     //random human generation
   for(let i = 0; i < humansPerFrame; i++){
     indexX = floor(random(width/gridSize)) * gridSize;
@@ -194,10 +182,46 @@ function draw() {
   // random doctor generation
   spawnStates(doctorIndex, doctorsPerFrame); 
   
-  //let audioThreshold2 = aa2.calculateThreshold();
-  //let level2 = aa2.getLevel();
-  
+    // audio banquet
+  let audioThreshold2 = aa2.calculateThreshold()/2;
+  let level2 = aa2.getLevel();
+  console.log(level2);
+  if (level2 > audioThreshold2) {
+    
+    logCentroidRatio = aa2.getLogisticCentroidHuman();
+    gridX = max(min((logCentroidRatio + random(-dx,dx)), 0.99),0.01);
+    gridY = max(min((1 + level2*random(-1,1))/2, 0.99),0.01);
+    indexX = floor(gridX*width/gridSize) * gridSize;
+    indexY = floor(gridY*height/gridSize) * gridSize;
+    // console.log(indexX,indexY);
+    let iter = max(int(level2/audioThreshold2), 20);
+    if (grid[indexX][indexY] == 0) {
+      grid[indexX][indexY] = peachIndex;
+      for (let i = 0; i < iter; i++) {
+        dIndexX = int(random(-3, 3)) * gridSize;
+        dIndexY = int(random(-3, 3)) * gridSize;
+        if (dIndexX == 0 && dIndexY == 0) {
+          continue;
+        }
+        indX = max(min(indexX + dIndexX, floor(width/gridSize - 1) * gridSize),0);
+        indY = max(min(indexY + dIndexY, floor(height/gridSize - 1) * gridSize),0);
+        if (grid[indX][indY] == 0) {
+          grid[indX][indY] = normalIndex[int(random(normalIndex.length))];
+        } else if (grid[indX][indY] == barrierIndex) {
+          grid[indX][indY] = moneyIndex;
+        }
+      }
+    }
+  }
 }
+
+
+function mousePressed() {
+  aa1.start_audio();
+  aa2.start_audio();
+  draw();
+}
+
 
 function countSurroundingStates(gridStates, indexX, indexY) {
   let stateCount = new Array(gridStates.length).fill(0);
