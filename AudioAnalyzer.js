@@ -21,9 +21,8 @@ class AudioAnalyzer {
   }
   
   start_audio() {
-    console.log(this.index);
+    this.audio.getSources();
     this.audio.setSource(this.index);
-    console.log(this.audio.getSources());
     this.audio.start();
   }
   
