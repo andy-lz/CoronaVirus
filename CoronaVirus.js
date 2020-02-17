@@ -10,7 +10,7 @@
 const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦"];  // TODO add fire?
 const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 12;
-let grid = []; // lookup table of [x][y] = states
+var grid; // lookup table of [x][y] = states
 const diseaseIndex = 3;
 const deathIndex = 4;
 const normalIndex = [1,2];
@@ -18,7 +18,7 @@ const humanIndex = [1,2,5];
 const doctorIndex = 5;
 const barrierIndex = 6;
 const waterIndex = 7;
-const dx = 0.2;
+const dx = 0.1;
 
 const humansPerFrame = 2; // number of humans generated each frame
 const doctorsPerFrame = 1;
@@ -26,13 +26,16 @@ const diseaseProbability = 0.9; // chance that a new disease appears in each fra
 
 
 var aa1, aa2;
+// const audioThresh = 0.01;
 
 let img;
 const imgZoom = 1.2;
 const IMG_FLAG = 0;
 
 function preload() {
-  img = loadImage('assets/background.jpg');
+  if (IMG_FLAG > 0) {
+    img = loadImage('assets/background.jpg');
+  }
 }
 
 function setup() {
@@ -41,9 +44,12 @@ function setup() {
   createCanvas(windowWidth, windowHeight, P2D);
   textSize(gridSize);
   let terrainGrid = [];
-  img.resize(1.5*width, 1.5*height);
-  img.loadPixels();
-  let brightAvg = avgBrightness(img.pixels);
+  let grid = [];
+  if (IMG_FLAG > 0) {
+    img.resize(1.5*width, 1.5*height);
+    img.loadPixels();
+    let brightAvg = avgBrightness(img.pixels);
+  }
   for(let x = 0; x < width; x += gridSize){
     grid[x] = [];
     terrainGrid[x] = [];
@@ -52,7 +58,7 @@ function setup() {
       if (IMG_FLAG > 0) {
         terrainGrid[x][y] = binaryBrightness(img.get(x,y), brightAvg);
       } else {
-        terrainGrid[x][y] = random() < 0.6 ? 1 : 0;
+        terrainGrid[x][y] = random() < 0.57 ? 1 : 0;
       }
       //draw grid
       // rect(x, y, gridSize, gridSize);
@@ -64,11 +70,11 @@ function setup() {
   myDiv.position(0, 0);
   
   aa1 = new AudioAnalyzer(0);
-  aa2 = new AudioAnalyzer(1);
+  // aa2 = new AudioAnalyzer(1);
   
   userStartAudio().then(function() {
      aa1.start_audio();
-     aa2.start_audio();
+     // aa2.start_audio();
      myDiv.remove();
    });
 }
@@ -132,24 +138,12 @@ function draw() {
   });
   if (humanCount == 0) { clearAll(); } // clear ground
   
-  //random human generation
-  for(let i = 0; i < humansPerFrame; i++){
-    indexX = floor(random(width/gridSize)) * gridSize;
-    indexY = floor(random(height/gridSize)) * gridSize;
-    if (grid[indexX][indexY] == 0) {
-      grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
-    }
-  }
-  
-  // random doctor generation
-  spawnStates(doctorIndex, doctorsPerFrame); 
-  
   // audio disease
   let audioThreshold1 = aa1.calculateThreshold()/2;
   let level1 = aa1.getLevel();
 
   if (level1 > audioThreshold1) {
-    logCentroidRatio = aa1.getLogCentroid();
+    logCentroidRatio = aa1.getLogisticCentroidHuman();
     for (let i = 0; i < int(level1/audioThreshold1); i++) {
       if(random() < diseaseProbability) {
         gridX = max(min((logCentroidRatio + random(-dx,dx)), 0.99),0.01);
@@ -165,9 +159,20 @@ function draw() {
       }
     }
   }
+    //random human generation
+  for(let i = 0; i < humansPerFrame; i++){
+    indexX = floor(random(width/gridSize)) * gridSize;
+    indexY = floor(random(height/gridSize)) * gridSize;
+    if (grid[indexX][indexY] == 0) {
+      grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
+    }
+  }
   
-  let audioThreshold2 = aa2.calculateThreshold();
-  let level2 = aa2.getLevel();
+  // random doctor generation
+  spawnStates(doctorIndex, doctorsPerFrame); 
+  
+  //let audioThreshold2 = aa2.calculateThreshold();
+  //let level2 = aa2.getLevel();
   
 }
 
@@ -348,7 +353,7 @@ function proceduralGenerateLand(terrainGrid) {
       });
     });
   }
-  setLand(terrainGrid);
+  // setLand(terrainGrid);
 }
 
 function setLand(terrainGrid) {
