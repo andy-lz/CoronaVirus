@@ -1,8 +1,6 @@
 // Inspired by Conway's Game of Life
 
 /* TODO
-  * Add second mic functionality
-     * taxes? peach bomb?
   * Add death/skull mechanic (lethality?)
   * Get Coronavirus stock footage
 */
@@ -132,10 +130,15 @@ function draw() {
           propagate(diseaseIndex, humanIndex, indexX, indexY);
         }
       }
-      if (lastState == peachIndex || lastState == moneyIndex) {
+      if (lastState == peachIndex) {
         if (stateCounts[diseaseIndex] > 0) {
           propagate(diseaseIndex, humanIndex, indexX, indexY);
-          grid[indexX][indexY] = 0;
+          grid[indexX][indexY] = 0; // remove banquet
+        }
+      }
+      if (lastState == moneyIndex) {
+        if (stateCounts[diseaseIndex] > 0) {
+          propagate(diseaseIndex, humanIndex, indexX, indexY);
         }
       }
       if (lastState == doctorIndex) { // doctor's immunization
