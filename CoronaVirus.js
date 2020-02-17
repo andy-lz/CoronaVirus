@@ -312,11 +312,19 @@ function spawnStates(state, numStates) {
 }
 
 function clearAll() {
+  background(255);
   grid.forEach((column, indexX) => {
     column.forEach((state, indexY) => {
       grid[indexX][indexY] = 0;
+      if (IMG_FLAG > 0) {
+        terrainGrid[x][y] = binaryBrightness(img.get(x,y), brightAvg);
+      } else {
+        terrainGrid[x][y] = random() < 0.57 ? 1 : 0;
+      }
     });
   });
+  proceduralGenerateLand(terrainGrid);
+  setLand(terrainGrid);
 }
 
 function proceduralGenerateLand(terrainGrid) {
