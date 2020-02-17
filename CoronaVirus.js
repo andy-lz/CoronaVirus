@@ -7,7 +7,7 @@
   * Get Coronavirus stock footage
 */
 
-const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦"];  // TODO add fire?
+const states = ["", "🙍🏻‍♂️","🙍🏻‍♀️","🤢","💀","👨‍⚕️","🚧","💦","🍑"];  // TODO add fire?
 const humanStates = ["👨‍💼","🙍‍♂"];
 const gridSize = 12;
 var grid; // lookup table of [x][y] = states
@@ -18,6 +18,7 @@ const humanIndex = [1,2,5];
 const doctorIndex = 5;
 const barrierIndex = 6;
 const waterIndex = 7;
+const peachIndex = 8;
 const dx = 0.1;
 
 const humansPerFrame = 2; // number of humans generated each frame
@@ -44,7 +45,7 @@ function setup() {
   createCanvas(windowWidth, windowHeight, P2D);
   textSize(gridSize);
   let terrainGrid = [];
-  let grid = [];
+  grid = [];
   if (IMG_FLAG > 0) {
     img.resize(1.5*width, 1.5*height);
     img.loadPixels();
@@ -70,11 +71,11 @@ function setup() {
   myDiv.position(0, 0);
   
   aa1 = new AudioAnalyzer(0);
-  // aa2 = new AudioAnalyzer(1);
+  aa2 = new AudioAnalyzer(1);
   
   userStartAudio().then(function() {
      aa1.start_audio();
-     // aa2.start_audio();
+     aa2.start_audio();
      myDiv.remove();
    });
 }
@@ -155,6 +156,28 @@ function draw() {
           grid[indexX][indexY] = diseaseIndex;
         } else if (grid[indexX][indexY] == doctorIndex && random() < 0.4) {
           grid[indexX][indexY] = diseaseIndex;
+        }
+      }
+    }
+  }
+  
+  // audio disease
+  let audioThreshold2 = aa2.calculateThreshold()/2;
+  let level2 = aa2.getLevel();
+
+  if (level2 > audioThreshold2) {
+    logCentroidRatio = aa2.getLogisticCentroidHuman();
+    gridX = max(min((logCentroidRatio + random(-dx,dx)), 0.99),0.01);
+    gridY = max(min((1 + level1*random(-1,1))/2, 0.99),0.01);
+    indexX = floor(gridX*width/gridSize) * gridSize;
+    indexY = floor(gridY*height/gridSize) * gridSize;
+    // console.log(indexX,indexY);
+    let iter = max(int(level1/audioThreshold1), 20);
+    for (let i = 0; i < iter; i++) {
+        dIndexX = int(random(-3, 3));
+        dIndexY = int(random(-3, 3));
+        if (grid[indexX + dIndexX][indexY + dIndexY] == 0) {
+          grid[indexX + dIndexX][indexY + dIndexY] = normalIndex[int(random(normalIndex.length))];
         }
       }
     }
