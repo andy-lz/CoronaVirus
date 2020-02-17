@@ -56,6 +56,6 @@ The visualizer uses audio input within a separate AudioAnalyzer class to generat
   
   3. _Infection_: If anyone neighboring a banquet gets infected with a Disease, then ALL banquet neighbors subsequently become infected in the next turn. 
 
-  3. _Barrier Breaking_: If there is a Barrier nearby, the Barrier is replaced by Free Money, which also propagates Disease.
+  3. _Barrier Breaking_: If there is a Barrier nearby, the Barrier is removed to cut costs, which also propagates Disease.
 
 
