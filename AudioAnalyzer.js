@@ -1,7 +1,7 @@
 
 
 const nyquist = 22050;
-const thresholdLength = 60;
+const thresholdLength = 40;
 
 
 class AudioAnalyzer {
@@ -47,6 +47,11 @@ class AudioAnalyzer {
     return this.logTransformCentroidRatio(centroid, nyquist);
   }
   
+  getLogisticCentroidHuman() {
+    let centroid = this.getCentroid();
+    return this.logisticTransformCentroidHuman(centroid);
+  }
+  
   calculateThreshold() {
     return this.averageArray(this.amp_levels);
   }
@@ -58,6 +63,11 @@ class AudioAnalyzer {
   }
   
   logTransformCentroidRatio(centroid, nyquist) {
-    return log(centroid)/(2*log(nyquist));
+    return log(centroid)/(log(nyquist));
+  }
+  
+  logisticTransformCentroidHuman(centroid) {
+  // assuming human centroid is between 1000 - 4000
+    return 1/(1+exp(-0.00133*(centroid-2500)));
   }
 }
