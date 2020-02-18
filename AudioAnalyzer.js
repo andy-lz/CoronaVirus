@@ -69,8 +69,12 @@ class AudioAnalyzer {
     return log(centroid)/(log(nyquist));
   }
   
+  setLogisticWeights(w, b) {
+    this.w = w;
+    this.b = b;
+  }
+  
   logisticTransformCentroidHuman(centroid) {
-  // assuming human centroid is between 1000 - 4000
-    return 1/(1+exp(-0.00133*(centroid-2500)));
+    return 1/(1+exp(this.w*(centroid-this.b)));
   }
 }

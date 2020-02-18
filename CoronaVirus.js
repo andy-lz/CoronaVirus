@@ -73,7 +73,8 @@ function setup() {
   
   aa1 = new AudioAnalyzer(0);
   aa2 = new AudioAnalyzer(1);
-  
+  aa1.setLogisticWeights(-1*log(99)/2500, 2500);
+  aa2.setLogisticWeights(-1*log(99)/2500, 2500);
   userStartAudio().then(function() {
      aa1.start_audio();
      aa2.start_audio();
@@ -97,7 +98,13 @@ function draw() {
         } else {
           stroke(0);
         }
-        text(states[state], indexX, indexY + gridSize);
+        if (state == peachIndex){
+          textSize(gridSize * 2);
+          text(states[state], indexX, indexY + gridSize);
+          textSize(gridSize);
+        } else {
+          text(states[state], indexX, indexY + gridSize);
+        }
       }
       
       fatality = random();  // death probability 
@@ -131,6 +138,7 @@ function draw() {
         }
       }
       if (lastState == peachIndex) {
+        grid[indexX][indexY] = normalIndex[int(random(normalIndex.length))];
         if (stateCounts[diseaseIndex] > 0) {
           propagate(diseaseIndex, humanIndex, indexX, indexY);
           grid[indexX][indexY] = 0; // remove banquet
@@ -152,11 +160,12 @@ function draw() {
   if (humanCount == 0) { clearAll(); } // clear ground
   
   // audio disease
-  let audioThreshold1 = aa1.calculateThreshold()/2;
+  let audioThreshold1 = aa1.calculateThreshold();
   let level1 = aa1.getLevel();
 
   if (level1 > audioThreshold1) {
     logCentroidRatio = aa1.getLogisticCentroidHuman();
+    console.log(aa1.center);
     for (let i = 0; i < int(level1/audioThreshold1); i++) {
       if(random() < diseaseProbability) {
         gridX = max(min((logCentroidRatio + random(-dx,dx)), 0.99),0.01);
@@ -186,9 +195,9 @@ function draw() {
   spawnStates(doctorIndex, doctorsPerFrame); 
   
     // audio banquet
-  let audioThreshold2 = aa2.calculateThreshold()/2;
+  let audioThreshold2 = aa2.calculateThreshold();
   let level2 = aa2.getLevel();
-  console.log(level2);
+
   if (level2 > audioThreshold2) {
     
     logCentroidRatio = aa2.getLogisticCentroidHuman();
@@ -209,9 +218,9 @@ function draw() {
         indX = max(min(indexX + dIndexX, floor(width/gridSize - 1) * gridSize),0);
         indY = max(min(indexY + dIndexY, floor(height/gridSize - 1) * gridSize),0);
         if (grid[indX][indY] == 0) {
-          grid[indX][indY] = normalIndex[int(random(normalIndex.length))];
+          grid[indX][indY] = peachIndex;
         } else if (grid[indX][indY] == barrierIndex) {
-          grid[indX][indY] = moneyIndex;
+          grid[indX][indY] = 0;
         }
       }
     }
@@ -222,7 +231,6 @@ function draw() {
 function mousePressed() {
   aa1.start_audio();
   aa2.start_audio();
-  draw();
 }
 
 
