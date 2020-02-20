@@ -1,6 +1,10 @@
 # CoronaVirus
 Disease Visualizer in p5.js -- inspired by Conway's Game of Life and recent events surrounding the CoronaVirus epidemic.
 
+# Warning
+
+This visualizer is microphone-specific -- different microphones pick up different audio spectrums, and thus have different spectral centroids. Tuning is set via the setLogisticWeights() function. 
+
 # Rules
 
 ## Land Generation
