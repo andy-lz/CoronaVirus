@@ -1,5 +1,5 @@
 # CoronaVirus
-Disease Visualizer in p5.js -- inspired by Conway's Game of Life and recent events surrounding the CoronaVirus epidemic.
+Disease Visualizer in p5.js -- inspired by Conway's Game of Life and recent events surrounding the coronavirus epidemic.
 
 # Warning
 
