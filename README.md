@@ -9,7 +9,7 @@ This visualizer is microphone-specific -- different microphones pick up differen
 
 ## Land Generation
 
-There are two forms of world generation which must be specified at startup:
+There are two forms of world generation seeds which must be specified at startup:
 
   1. _Random world generation_: Specify a noise map of Land and Water.
   
